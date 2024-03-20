@@ -174,21 +174,26 @@ int main()
     ov::Core core;
 
     std::chrono::time_point<std::chrono::high_resolution_clock> ModelLoadstart, ModelLoadend, InferenceTimestart, InferenceTimeend, TotalTimeforAllFramesStart, TotalTimeforAllFramesEnd, TimeforOneFrameStart, TimeforOneFrameEnd, PreProcessstart, PreProcessend;
-    fstream ModelFile;
+   
+    std::cout << " Enter what version you are testing -- CLEAN CACHE BEFORE TRIGGRTING " << std::endl;
+    std::cout << "   1. ONNX " << std::endl;
+    std::cout << "   2. IR/FILES " << std::endl;
+    std::cout << "   3. CACHE  " << std::endl;
+    int version=0;
+    std::cin >> version;
 
-
-    ModelFile.open("./Extra/Dependency/Models/ModelCurrentlyUsed.txt", ios::in); //open a file to perform read operation using file object
+    std::cout << " CHOOSE HARDWARE " << std::endl;
+    std::cout << " 1. CPU " << std::endl;
+    std::cout << " 2. GPU INTEL" << std::endl;
+    std::cout << " 3. GPU NVIDIA" << std::endl;
+    std::cout << " 4. AUTO " << std::endl;
+    std::cout << " 5. MULTI " << std::endl;
+    std::cout << " 6. HETERO " << std::endl;
+    int hardware=0;
+    std::cin >> hardware;
     string modelname;
-    if (ModelFile.is_open()) { //checking whether the file is open
 
-        while (getline(ModelFile, modelname)) { //read data from file object and put it into string.
-            cout << "Loaded Model ( from .txt file ) Name is ::  " << modelname << "\n"; //print the data of the string
-            break;
-        }
-        ModelFile.close(); //close the file object.
-    }
-    std::cout << " modelname :: " << modelname << std::endl;
-  
+    modelname = "OBFetalHeart_AutoLabel_4CH_from_nnUNet_pytorch";
     string ModelPrefix = "./Extra/Dependency/Models/";
     string ModelPostfixbin = ".bin";
     string ModelPostfixXml = ".xml";
@@ -200,26 +205,30 @@ int main()
     const char* filebin = weights_path.data();
     const char* fileonnx = onnx_path.data();
 
-
-    struct stat sb;
-    //if ((stat(filexml, &sb) == 0 && !(sb.st_mode & S_IFDIR))&& (stat(filebin, &sb) == 0 && !(sb.st_mode & S_IFDIR)))
-    //{
-    //    cout << "The path is valid!" << std::endl;
-    //    network = ie.ReadNetwork(model_path, weights_path);
-    //    //network = ie.ReadNetwork(onnx_path);  
-    //}
     std::shared_ptr<ov::Model> model;
-    if ((stat(fileonnx, &sb) == 0 && !(sb.st_mode & S_IFDIR)) && (stat(fileonnx, &sb) == 0 && !(sb.st_mode & S_IFDIR)))
+    if (version == 1)
     {
-        cout << "The path is valid!" << std::endl;
-        //  network = ie.ReadNetwork(model_path, weights_path);  
         model = core.read_model(onnx_path);
+    }
+    else //if (version == 2)
+    {
+        model = core.read_model(model_path);
+    }
+    std::string SHardware = "CPU";
+    if (hardware == 1)
+    {
+        SHardware = "CPU";
+    }
+    else if (hardware == 2)
+    {
+        SHardware = "GPU.0";
     }
     else
     {
-        cout << "The Path is invalid!" << std::endl;
-        return 0;
+        SHardware = "GPU.1";
     }
+
+
     // Print input node details
     std::cout << "Input Node(s) Information:" << std::endl;
     for (const auto& input : model->inputs()) {
@@ -247,7 +256,7 @@ int main()
 
     // Compile the model for a specific device, e.g., "CPU", with caching enabled
     core.set_property(ov::cache_dir("./Extra/Dependency/Models"));
-    ov::CompiledModel compiled_model = core.compile_model(model, "CPU");
+    ov::CompiledModel compiled_model = core.compile_model(model, SHardware);
     
 
     //Model Inference without Caching 
